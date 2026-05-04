@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Transaction History</title>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        background: #f5f6fa;
+    }
+
+    /* Header */
+    .header {
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        background: #1e293b;
+        color: white;
+        padding: 12px 0;
+        position: sticky;
+        top: 0;
+    }
+
+    .tab {
+        cursor: pointer;
+        padding: 10px 15px;
+        border-radius: 6px;
+        transition: 0.3s;
+        font-size: 14px;
+    }
+
+    .tab:hover, .tab.active {
+        background: #ffffff;
+        color: black;
+    }
+
+    .container {
+        padding: 15px;
+    }
+
+    /* Summary cards */
+    .cards {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+
+    .card {
+        background: white;
+        padding: 12px;
+        border-radius: 10px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+
+    .card h4 {
+        margin: 0;
+        font-size: 12px;
+        color: gray;
+    }
+
+    .card p {
+        margin: 5px 0 0;
+        font-size: 18px;
+        font-weight: bold;
+    }
+
+    /* Filters */
+    .filters {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 15px;
+    }
+
+    .filters input, .filters select {
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        flex: 1;
+        min-width: 160px;
+    }
+
+    /* Table */
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    th, td {
+        padding: 12px;
+        border-bottom: 1px solid #eee;
+        text-align: left;
+        font-size: 13px;
+        white-space: nowrap;
+    }
+
+    th {
+        background: #f1f5f9;
+    }
+
+    .status {
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 12px;
+        display: inline-block;
+    }
+
+    .success { background: #dcfce7; color: #166534; }
+    .failed { background: #fee2e2; color: #991b1b; }
+    .pending { background: #fef9c3; color: #92400e; }
+
+    /* MOBILE */
+    @media (max-width: 768px) {
+
+        .cards {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        table thead {
+            display: none;
+        }
+
+        table, tbody, tr, td {
+            display: block;
+        }
+
+        tr {
+            background: white;
+            margin-bottom: 12px;
+            border-radius: 10px;
+            padding: 10px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        }
+
+        td {
+            text-align: right;
+            padding: 8px;
+            position: relative;
+            border: none;
+            border-bottom: 1px solid #f1f1f1;
+        }
+
+        td::before {
+            content: attr(data-label);
+            position: absolute;
+            left: 10px;
+            font-weight: bold;
+            text-align: left;
+        }
+    }
+</style>
+</head>
+
+<body>
+
+<div class="header">
+    <div class="tab" id="dashboard" onclick="showTab('dashboard', this)">Dashboard</div>
+    <div class="tab" id="employee" onclick="showTab('employee', this)">Employee</div>
+    <div class="tab active" id="history" onclick="showTab('history', this)">History</div>
+</div>
+
+<div class="container">
+
+    <!-- Summary Cards -->
+    <div class="cards">
+        <div class="card"><h4>Total Transactions</h4><p id="total">0</p></div>
+        <div class="card"><h4>Success</h4><p id="success">0</p></div>
+        <div class="card"><h4>Failed</h4><p id="failed">0</p></div>
+        <div class="card"><h4>Pending</h4><p id="pending">0</p></div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters">
+        <input type="date" />
+        <input type="text" id="search" placeholder="Search name or card id" />
+        <select>
+            <option>All Status</option>
+            <option>Success</option>
+            <option>Failed</option>
+            <option>Pending</option>
+        </select>
+    </div>
+
+    <!-- Table -->
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Card ID</th>
+                <th>Date</th>
+                <th>Item</th>
+                <th>Qty</th>
+                <th>Machine</th>
+                <th>Cost</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody id="body"></tbody>
+    </table>
+
+</div>
+
+<script>
+function showTab(tabId, element) {
+    if(tabId=='employee')
+        window.location.href='/employee'
+    else if(tabId=='dashboard')
+        window.location.href='/dashboard'
+}
+const logs = [
+    {name:"John Doe", card:"C1001", date:"2026-05-01", item:"Coffee", qty:2, machine:"M1", cost:5.00, status:"Success"},
+    {name:"Jane Smith", card:"C1002", date:"2026-05-01", item:"Sandwich", qty:1, machine:"M2", cost:7.50, status:"Pending"},
+    {name:"Michael Lee", card:"C1003", date:"2026-05-02", item:"Juice", qty:3, machine:"M1", cost:6.00, status:"Success"},
+    {name:"Sarah Kim", card:"C1004", date:"2026-05-02", item:"Snack", qty:2, machine:"M3", cost:4.00, status:"Failed"},
+    {name:"David Park", card:"C1005", date:"2026-05-03", item:"Tea", qty:1, machine:"M2", cost:2.50, status:"Success"}
+];
+
+function render(){
+    const body = document.getElementById("body");
+    body.innerHTML = "";
+
+    let s=0,f=0,p=0;
+
+    logs.forEach(l => {
+        if(l.status=="Success") s++;
+        if(l.status=="Failed") f++;
+        if(l.status=="Pending") p++;
+
+        body.innerHTML += `
+        <tr>
+            <td data-label="Name">${l.name}</td>
+            <td data-label="Card ID">${l.card}</td>
+            <td data-label="Date">${l.date}</td>
+            <td data-label="Item">${l.item}</td>
+            <td data-label="Qty">${l.qty}</td>
+            <td data-label="Machine">${l.machine}</td>
+            <td data-label="Cost">$${l.cost.toFixed(2)}</td>
+            <td data-label="Status"><span class="status ${l.status.toLowerCase()}">${l.status}</span></td>
+        </tr>
+        `;
+    });
+
+    document.getElementById("total").innerText = logs.length;
+    document.getElementById("success").innerText = s;
+    document.getElementById("failed").innerText = f;
+    document.getElementById("pending").innerText = p;
+}
+
+render();
+
+</script>
+
+</body>
+</html>

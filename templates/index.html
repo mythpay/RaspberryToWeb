@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SocketIO Test</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script>
+    const socket = io();
+
+    // Listen for connection
+    socket.on('connect', () => {
+        socket.emit('my_event', {data: 'I am connected!'});
+    });
+    function sendMsg() {
+        socket.emit("message", "Hello from browser!");
+    }
+
+    // Listen for custom server events
+    socket.on('response', (data) => {
+        console.log(data.data);
+    });
+</script>
+</head>
+<body>
+
+<h2>SocketIO Test</h2>
+<button onclick="sendMsg()">Send Message</button>
+
+
+
+</body>
+</html>

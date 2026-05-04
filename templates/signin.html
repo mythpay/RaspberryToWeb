@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sign In</title>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <style>
+    *{
+      margin:0;
+      padding:0;
+      box-sizing:border-box;
+      font-family:Arial, sans-serif;
+    }
+
+    body{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      min-height:100vh;
+      background:#f4f6f9;
+      padding:20px;
+    }
+
+    .container{
+      width:100%;
+      max-width:400px;
+      background:#fff;
+      padding:30px;
+      border-radius:12px;
+      box-shadow:0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    .title{
+      text-align:center;
+      margin-bottom:25px;
+      font-size:28px;
+      font-weight:bold;
+      color:#333;
+    }
+
+    .input-group{
+      margin-bottom:18px;
+    }
+
+    .input-group label{
+      display:block;
+      margin-bottom:8px;
+      color:#555;
+      font-size:14px;
+    }
+
+    .input-group input{
+      width:100%;
+      padding:14px;
+      border:1px solid #ccc;
+      border-radius:8px;
+      outline:none;
+      font-size:16px;
+      transition:0.3s;
+    }
+
+    .input-group input:focus{
+      border-color:#007bff;
+    }
+
+    .btn{
+      width:100%;
+      padding:14px;
+      border:none;
+      background:#007bff;
+      color:#fff;
+      font-size:16px;
+      border-radius:8px;
+      cursor:pointer;
+      transition:0.3s;
+    }
+
+    .btn:hover{
+      background:#0056b3;
+    }
+
+    .alert{
+      position:fixed;
+      top:20px;
+      right:20px;
+      padding:14px 20px;
+      border-radius:8px;
+      color:#fff;
+      font-size:14px;
+      display:none;
+      z-index:999;
+      animation:fadeIn 0.3s ease;
+    }
+
+    .success{
+      background:#28a745;
+    }
+
+    .error{
+      background:#dc3545;
+    }
+
+    @keyframes fadeIn{
+      from{
+        opacity:0;
+        transform:translateY(-10px);
+      }
+      to{
+        opacity:1;
+        transform:translateY(0);
+      }
+    }
+
+    @media(max-width:480px){
+      .container{
+        padding:20px;
+      }
+
+      .title{
+        font-size:24px;
+      }
+
+      .input-group input,
+      .btn{
+        padding:12px;
+        font-size:15px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="alert" id="alertBox"></div>
+
+  <div class="container">
+    <div class="title">Sign In</div>
+
+    <form id="loginForm">
+      <div class="input-group">
+        <label>Email</label>
+        <input type="email" id="email" name="email" placeholder="Enter email" required>
+      </div>
+
+      <div class="input-group">
+        <label>Password</label>
+        <input type="password" id="password" name="password" placeholder="Enter password" required>
+      </div>
+
+      <button type="submit" class="btn">Login</button>
+    </form>
+  </div>
+
+  <script>
+    const form = document.getElementById("loginForm");
+
+    function showAlert(message, type) {
+      const alertBox = document.getElementById("alertBox");
+
+      alertBox.innerText = message;
+      alertBox.className = `alert ${type}`;
+      alertBox.style.display = "block";
+
+      // Hide after 2 seconds
+      setTimeout(() => {
+        alertBox.style.display = "none";
+      }, 2000);
+    }
+
+    form.addEventListener("submit", async function(e){
+      e.preventDefault();
+
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      $.ajax({
+        type: "POST",
+        url: "/login",
+        data: JSON.stringify({
+            email: email,
+            password: password
+          }),
+        contentType: "application/json"
+      }).done(function(data) {
+            if(data.success){
+              showAlert(data.message, "success");
+              window.location.href='/dashboard'
+
+            }else{
+              showAlert(data.message, "error");
+            }
+        });
+    });
+  </script>
+
+</body>
+</html>
