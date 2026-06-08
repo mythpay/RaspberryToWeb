@@ -1,151 +1,187 @@
 import spidev
 import gpiod
-from gpiod import Direction, Value
-import threading
+from gpiod.line import Direction, Value
 import time
+import requests
+import threading
+from database import rfid_login
+from vend import MDBParser
 
-# --- Configuration ---
-RST_PIN = 25
-SPI_BUS = 0
-SPI_DEVICE = 0
+class RFIDCard(threading.Thread):
 
-# --- RC522 Registers ---
-CommandReg    = 0x01
-ComIEnReg     = 0x02
-ComIrqReg     = 0x04
-ErrorReg      = 0x06
-FIFODataReg   = 0x09
-FIFOLevelReg  = 0x0A
-BitFramingReg = 0x0D
-ModeReg       = 0x11
-TxControlReg  = 0x14
-TxASKReg      = 0x15
-TModeReg      = 0x2A
-TPrescalerReg = 0x2B
-TReloadRegH   = 0x2C
-TReloadRegL   = 0x2D
+    # --- Registers ---
+    CommandReg    = 0x01
+    ComIEnReg     = 0x02
+    ComIrqReg     = 0x04
+    ErrorReg      = 0x06
+    FIFODataReg   = 0x09
+    FIFOLevelReg  = 0x0A
+    BitFramingReg = 0x0D
+    ModeReg       = 0x11
+    TxControlReg  = 0x14
+    TxASKReg      = 0x15
+    TModeReg      = 0x2A
+    TPrescalerReg = 0x2B
+    TReloadRegH   = 0x2C
+    TReloadRegL   = 0x2D
 
-# --- SPI Setup ---
-spi = spidev.SpiDev()
-spi.open(SPI_BUS, SPI_DEVICE)
-spi.max_speed_hz = 1000000
-spi.mode = 0
+    GPIO_CHIP = "/dev/gpiochip0"
 
-# --- GPIO Setup (gpiod v2 API) ---
-GPIO_CHIP = '/dev/gpiochip0'
+    def __init__(self, spi_bus=0, spi_device=0, rst_pin=25):
 
-request = gpiod.request_lines(
-    GPIO_CHIP,
-    consumer="rc522",
-    config={
-        RST_PIN: gpiod.LineSettings(
-            direction=Direction.OUTPUT,
-            output_value=Value.ACTIVE
+        self.RST_PIN = rst_pin
+
+        # SPI setup
+        self.spi = spidev.SpiDev()
+        self.spi.open(spi_bus, spi_device)
+        self.spi.max_speed_hz = 1000000
+        self.spi.mode = 0
+        self.parser = MDBParser()
+        # GPIO setup
+        self.request = gpiod.request_lines(
+            self.GPIO_CHIP,
+            consumer="rc522",
+            config={
+                self.RST_PIN: gpiod.LineSettings(
+                    direction=Direction.OUTPUT,
+                    output_value=Value.ACTIVE
+                )
+            }
         )
-    }
-)
 
-class RFID(threading.Thread):
-    def rst_set(val):
-        request.set_value(RST_PIN, Value.ACTIVE if val else Value.INACTIVE)
+        self.last_uid = None
+        self.last_read_time = time.time()
+
+    # --- GPIO ---
+    def rst_set(self, val: bool):
+        self.request.set_value(
+            self.RST_PIN,
+            Value.ACTIVE if val else Value.INACTIVE
+        )
 
     # --- SPI Helpers ---
-    def write_reg(reg, val):
-        spi.xfer2([((reg << 1) & 0x7E), val])
+    def write_reg(self, reg, val):
+        self.spi.xfer2([((reg << 1) & 0x7E), val])
 
-    def read_reg(reg):
-        return spi.xfer2([((reg << 1) & 0x7E) | 0x80, 0])[1]
+    def read_reg(self, reg):
+        return self.spi.xfer2([((reg << 1) & 0x7E) | 0x80, 0])[1]
 
-    def set_bit_mask(reg, mask):
-        write_reg(reg, read_reg(reg) | mask)
+    def set_bit_mask(self, reg, mask):
+        self.write_reg(reg, self.read_reg(reg) | mask)
 
-    def clear_bit_mask(reg, mask):
-        write_reg(reg, read_reg(reg) & (~mask))
+    def clear_bit_mask(self, reg, mask):
+        self.write_reg(reg, self.read_reg(reg) & (~mask))
 
-    # --- RC522 Functions ---
-    def rc522_init():
-        rst_set(0)
+    # --- Init ---
+    def init(self):
+        self.rst_set(0)
         time.sleep(0.05)
-        rst_set(1)
+        self.rst_set(1)
         time.sleep(0.05)
-        write_reg(TModeReg,     0x80)
-        write_reg(TPrescalerReg,0xA9)
-        write_reg(TReloadRegH,  0x03)
-        write_reg(TReloadRegL,  0xE8)
-        write_reg(TxASKReg,     0x40)
-        write_reg(ModeReg,      0x3D)
-        set_bit_mask(TxControlReg, 0x03)
+
+        self.write_reg(self.TModeReg, 0x80)
+        self.write_reg(self.TPrescalerReg, 0xA9)
+        self.write_reg(self.TReloadRegH, 0x03)
+        self.write_reg(self.TReloadRegL, 0xE8)
+        self.write_reg(self.TxASKReg, 0x40)
+        self.write_reg(self.ModeReg, 0x3D)
+        self.set_bit_mask(self.TxControlReg, 0x03)
+
         print("RC522 initialized")
 
-    def communicate(command, send_data):
+    # --- Core Communication ---
+    def communicate(self, command, send_data):
+
         recv_data = []
-        write_reg(ComIEnReg, 0x77)
-        clear_bit_mask(ComIrqReg, 0x80)
-        set_bit_mask(FIFOLevelReg, 0x80)
-        write_reg(CommandReg, 0x00)
+
+        self.write_reg(self.ComIEnReg, 0x77)
+        self.clear_bit_mask(self.ComIrqReg, 0x80)
+        self.set_bit_mask(self.FIFOLevelReg, 0x80)
+        self.write_reg(self.CommandReg, 0x00)
 
         for b in send_data:
-            write_reg(FIFODataReg, b)
+            self.write_reg(self.FIFODataReg, b)
 
-        write_reg(CommandReg, command)
+        self.write_reg(self.CommandReg, command)
+
         if command == 0x0C:
-            set_bit_mask(BitFramingReg, 0x80)
+            self.set_bit_mask(self.BitFramingReg, 0x80)
 
         i = 2000
+
         while True:
-            irq = read_reg(ComIrqReg)
+            irq = self.read_reg(self.ComIrqReg)
             i -= 1
             if not (i != 0 and not (irq & 0x01) and not (irq & 0x30)):
                 break
 
-        clear_bit_mask(BitFramingReg, 0x80)
+        self.clear_bit_mask(self.BitFramingReg, 0x80)
 
         if i == 0:
             return "TIMEOUT", [], 0
 
-        if read_reg(ErrorReg) & 0x1B:
+        if self.read_reg(self.ErrorReg) & 0x1B:
             return "ERROR", [], 0
 
-        n = read_reg(FIFOLevelReg)
+        n = self.read_reg(self.FIFOLevelReg)
+
         for _ in range(n):
-            recv_data.append(read_reg(FIFODataReg))
+            recv_data.append(self.read_reg(self.FIFODataReg))
 
         return "OK", recv_data, n
 
-    def request_card():
-        write_reg(BitFramingReg, 0x07)
-        status, _, _ = communicate(0x0C, [0x26])
+    # --- Card functions ---
+    def request_card(self):
+        self.write_reg(self.BitFramingReg, 0x07)
+        status, _, _ = self.communicate(0x0C, [0x26])
         return status
 
-    def read_uid():
-        write_reg(BitFramingReg, 0x00)
-        status, recv, _ = communicate(0x0C, [0x93, 0x20])
+    def read_uid(self):
+        self.write_reg(self.BitFramingReg, 0x00)
+        status, recv, _ = self.communicate(0x0C, [0x93, 0x20])
+
         if status == "OK" and len(recv) >= 4:
             return recv[:4]
+
         return None
 
-    # --- Main ---
-    rc522_init()
-    print("\nHold your card near the reader...")
+    # --- Run loop ---
+    def run(self):
 
-try:
-    last_uid = None
-    while True:
-        if request_card() == "OK":
-            uid = read_uid()
-            if uid and uid != last_uid:
-                uid_str = ' '.join([hex(b) for b in uid])
-                decimal_id = int.from_bytes(uid[:4], byteorder='little')
-                print(f"\n Card detected!")
-                print(f"   UID (hex)     : {uid_str}")
-                print(f"   UID (decimal) : {decimal_id}")
-                last_uid = uid
-        else:
-            last_uid = None
-        time.sleep(0.1)
+        self.init()
+        print("\nHold your card near the reader...")
 
-except KeyboardInterrupt:
-    print("\n\nStopped.")
-finally:
-    spi.close()
-    request.release()
+        try:
+            while True:
+                try:
+                    if self.request_card() == "OK":
+
+                        uid = self.read_uid()
+                        now=time.time()
+                        # print("now time:",(now-self.last_read_time))
+                        if uid and (uid != self.last_uid or (now-self.last_read_time)>5):
+
+                            decimal_id = int.from_bytes(uid[:4], byteorder="little")
+
+                            print("\nCard detected!")
+                            print("UID:", uid)
+                            print("Decimal:", decimal_id)
+
+                            res = rfid_login(decimal_id)
+                            print("API response:",res)
+                            self.last_uid = uid
+                            self.last_read_time = now
+
+                    else:
+                        self.last_uid = None
+
+                    time.sleep(0.1)
+                except KeyboardInterrupt:
+                    break
+
+        except KeyboardInterrupt:
+            print("\nStopped.")
+
+        finally:
+            self.spi.close()
+            self.request.release()

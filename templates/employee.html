@@ -1,588 +1,803 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Employee</title>
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-<style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Employee | SteinBauer LLC</title>
+  <link rel="icon" type="image/x-icon" href="/static/favicon.png">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+  <style>
     body {
-        font-family: Arial, sans-serif;
-        margin: 0;
-        background: #f5f6fa;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #f5f6fa;
     }
 
     /* Header */
     .header {
-        display: flex;
-        justify-content: space-around;
-        align-items: center;
-        background: #1e293b;
-        color: white;
-        padding: 12px 0;
-        position: sticky;
-        top: 0;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      background: #1e293b;
+      color: white;
+      padding: 12px 0;
+      position: sticky;
+      top: 0;
+      z-index: 999;
     }
 
     .tab {
-        cursor: pointer;
-        padding: 10px 15px;
-        border-radius: 6px;
-        transition: 0.3s;
-        font-size: 14px;
+      cursor: pointer;
+      padding: 10px 15px;
+      border-radius: 6px;
+      transition: 0.3s;
+      font-size: 14px;
     }
 
-    .tab:hover, .tab.active {
-        background: #ffffff;
-        color: black;
+    .tab:hover,
+    .tab.active {
+      background: #ffffff;
+      color: black;
     }
+
     .toolbar {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        width: 100%;
-        margin: 20px auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      margin: 20px auto;
     }
 
-  .search-input {
-    display: flex;
-    padding: 10px 12px;
-    font-size: 16px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    gap:10px
-  }
-
-  .btn {
-    padding: 10px 14px;
-    font-size: 14px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-
-  .search-btn {
-    background: #007bff;
-    color: white;
-  }
-  .searchfield{
-    display: flex; padding: 10px 0;
-  }
-  .add-btn {
-    background: #007bff;
-    color: white;
-  }
-
-  /* Mobile responsive */
-  @media (max-width: 480px) {
-    .toolbar {
-      flex-direction: column;
-      align-items: stretch;
-    }
-    .searchfield{
-        flex-direction: column;
+    .search-input {
+      display: flex;
+      padding: 10px 12px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      gap: 10px;
+      margin-right: 5px;
+      margin-top: 5px;
     }
 
     .btn {
-      width: 100%;
+      padding: 10px 14px;
+      font-size: 14px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      white-space: nowrap;
     }
-  }
+
+    .search-btn {
+      background: #007bff;
+      color: white;
+      margin-top: 5px;
+    }
+
+    .searchfield {
+      display: flex;
+      padding: 10px 0;
+    }
+
+    .add-btn {
+      background: #007bff;
+      color: white;
+    }
+
+    /* Mobile responsive */
+    @media (max-width: 480px) {
+      .toolbar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .searchfield {
+        flex-direction: column;
+      }
+
+      .btn {
+        width: 100%;
+      }
+    }
+
     .container {
-        padding: 20px;
+      padding: 20px;
     }
 
     /* Date picker */
     .date-picker {
-        display: flex;
-        gap: 10px;
-        align-items: center;
-        flex-wrap: wrap;
-        margin-bottom: 10px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
     }
 
     .date-picker input {
-        padding: 8px;
-        border-radius: 6px;
-        border: 1px solid #ccc;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
     }
 
     .date-picker button {
-        padding: 8px 12px;
-        border: none;
-        border-radius: 6px;
-        background: #2563eb;
-        color: white;
-        cursor: pointer;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 6px;
+      background: #2563eb;
+      color: white;
+      cursor: pointer;
     }
 
     /* selected chips */
     .chips {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-bottom: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 20px;
     }
 
     .chip {
-        background: #e2e8f0;
-        padding: 6px 10px;
-        border-radius: 20px;
-        font-size: 12px;
-        cursor: pointer;
-        user-select: none;
+      background: #e2e8f0;
+      padding: 6px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      cursor: pointer;
+      user-select: none;
     }
 
     .chip:hover {
-        background: #cbd5e1;
+      background: #cbd5e1;
     }
 
     /* Cards */
     .cards {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 15px;
-        margin-bottom: 20px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      margin-bottom: 20px;
     }
 
     .card {
-        background: white;
-        padding: 15px;
-        border-radius: 10px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      background: white;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     }
 
     .card h3 {
-        margin: 0;
-        font-size: 14px;
-        color: gray;
+      margin: 0;
+      font-size: 14px;
+      color: gray;
     }
 
     .card p {
-        font-size: 20px;
-        margin: 5px 0 0;
-        font-weight: bold;
+      font-size: 20px;
+      margin: 5px 0 0;
+      font-weight: bold;
     }
 
     /* Table */
     .table-wrapper {
-        overflow-x: auto;
-        background: white;
-        border-radius: 10px;
-        padding: 10px 5px;
+      overflow-x: auto;
+      background: white;
+      border-radius: 10px;
+      padding: 10px 5px;
     }
 
     table {
-        width: 100%;
-        border-collapse: collapse;
-        min-width: 700px;
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 700px;
     }
 
-    th, td {
-        text-align: left;
-        white-space: nowrap;
-        border: 1px solid #ddd;
-        padding: 8px;
+    th,
+    td {
+      text-align: left;
+      white-space: nowrap;
+      border: 1px solid #ddd;
+      padding: 8px;
     }
 
-    tr:nth-child(even){background-color: #f2f2f2;}
+    tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
 
-    tr:hover {background-color: #ddd;}
+    tr:hover {
+      background-color: #ddd;
+    }
 
     th {
-    padding-top: 12px;
-    padding-bottom: 12px;
-    text-align: left;
-    background-color: #04AA6D;
-    color: white;
+      padding-top: 12px;
+      padding-bottom: 12px;
+      text-align: left;
+      background-color: #04aa6d;
+      color: white;
     }
 
     .status {
-        padding: 5px 10px;
-        border-radius: 6px;
-        font-size: 12px;
-        display: inline-block;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      display: inline-block;
     }
 
-    .active { background: #dcfce7; color: #166534; }
-    .pending { background: #fef9c3; color: #92400e; }
-    .denied { background: #fee2e2; color: #991b1b; }
+    .active {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .pending {
+      background: #fef9c3;
+      color: #92400e;
+    }
+
+    .denied {
+      background: #fee2e2;
+      color: #991b1b;
+    }
 
     button {
-        padding: 5px 10px;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        margin-right: 5px;
-        font-size: 12px;
+      padding: 5px 10px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-right: 5px;
+      font-size: 12px;
     }
 
-    .view { background: #3b82f6; color: white; }
-    .delete { background: #ff2200; color: white; }
+    .view {
+      background: #3b82f6;
+      color: white;
+    }
+
+    .delete {
+      background: #ff2200;
+      color: white;
+    }
 
     select {
-        padding: 5px;
-        border-radius: 5px;
-        border: 1px solid #ccc;
-        font-size: 12px;
+      padding: 5px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      font-size: 12px;
     }
 
     @media (max-width: 768px) {
-        .cards {
-            grid-template-columns: 1fr 1fr;
-        }
+      .cards {
+        grid-template-columns: 1fr 1fr;
+      }
     }
 
     @media (max-width: 500px) {
-        .cards {
-            grid-template-columns: 1fr;
-        }
+      .cards {
+        grid-template-columns: 1fr;
+      }
     }
-/* Background overlay */
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 999;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.5);
-}
 
-/* Modal box */
-.modal-content {
-    background: white;
-    width: 90%;
-    max-width: 400px;
-    margin: 5% auto;
-    border-radius: 10px;
-    overflow: hidden;
-    animation: fadeIn 0.2s ease-in-out;
-}
+    /* Background overlay */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 999;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+    }
 
-/* Header */
-.modal-header {
-    background: #1e293b;
-    color: white;
-    padding: 12px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-/* Body */
-.modal-body {
-    padding: 15px;
-    display: flex;
-    flex-direction: column;
-}
-
-.modal-body label {
-    font-size: 13px;
-    margin-top: 8px;
-}
-
-.modal-body input,
-.modal-body select {
-    padding: 8px;
-    margin-top: 4px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-}
-
-/* Footer */
-.modal-footer {
-    display: flex;
-    justify-content: space-between;
-    padding: 12px;
-    background: #f3f4f6;
-}
-
-.modal-footer button {
-    padding: 8px 12px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-}
-
-.modal-footer button:hover {
-    opacity: 0.9;
-}
-
-.cancel {
-    background: #ef4444;
-    color: white;
-}
-
-/* Close button */
-.close {
-    cursor: pointer;
-    font-size: 22px;
-}
-.alert{
-    position:fixed;
-    top:20px;
-    right:20px;
-    padding:14px 20px;
-    border-radius:8px;
-    color:#fff;
-    font-size:14px;
-    display:none;
-    z-index:999;
-    animation:fadeIn 0.3s ease;
-}
-/* Animation */
-@keyframes fadeIn {
-    from { transform: scale(0.9); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
-}
-
-/* Mobile responsiveness */
-@media (max-width: 500px) {
+    /* Modal box */
     .modal-content {
-        margin: 20% auto;
+      background: white;
+      width: 90%;
+      max-width: 400px;
+      margin: 5% auto;
+      border-radius: 10px;
+      overflow: hidden;
+      animation: fadeIn 0.2s ease-in-out;
     }
-}
-</style>
+
+    /* Header */
+    .modal-header {
+      background: #1e293b;
+      color: white;
+      padding: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Body */
+    .modal-body {
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-body label {
+      font-size: 13px;
+      margin-top: 8px;
+    }
+
+    .modal-body input,
+    .modal-body select {
+      padding: 8px;
+      margin-top: 4px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    /* Footer */
+    .modal-footer {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px;
+      background: #f3f4f6;
+    }
+
+    .modal-footer button {
+      padding: 8px 12px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .modal-footer button:hover {
+      opacity: 0.9;
+    }
+
+    .cancel {
+      background: #ef4444;
+      color: white;
+    }
+
+    /* Close button */
+    .close {
+      cursor: pointer;
+      font-size: 22px;
+    }
+
+    .alert {
+      position: fixed;
+      top: 60px;
+      right: 10px;
+      padding: 14px 20px;
+      border-radius: 8px;
+      color: white;
+      font-size: 16px;
+      display: none;
+      background-color: #2196f3;
+      z-index: 999;
+      animation: fadeIn 0.3s ease;
+    }
+
+    /* Animation */
+    @keyframes fadeIn {
+      from {
+        transform: scale(0.9);
+        opacity: 0;
+      }
+
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    /* Mobile responsiveness */
+    @media (max-width: 500px) {
+      .modal-content {
+        margin: 20% auto;
+      }
+    }
+
+    @keyframes popup {
+      from {
+        transform: scale(0.9);
+        opacity: 0;
+      }
+
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    .modal-content h2 {
+      margin-bottom: 10px;
+      color: #111827;
+    }
+
+    .modal-content p {
+      color: #4b5563;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .cancel-btn,
+    .confirm-btn {
+      border: none;
+      padding: 10px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .cancel-btn {
+      background: #e5e7eb;
+    }
+
+    .confirm-btn {
+      background: #ef4444;
+      color: white;
+    }
+
+    .confirm-btn:hover {
+      opacity: 0.9;
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 480px) {
+      .modal-content {
+        padding: 18px;
+      }
+
+      .modal-actions {
+        flex-direction: column;
+      }
+
+      .cancel-btn,
+      .confirm-btn {
+        width: 100%;
+      }
+    }
+
+    .machine-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    .status-light {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      display: inline-block;
+      background: red;
+      box-shadow: 0 0 8px rgba(255, 0, 0, 0.8);
+    }
+
+    /* GREEN */
+    .status-light.green {
+      background: #22c55e;
+      box-shadow: 0 0 10px rgba(34, 197, 94, 0.9);
+    }
+
+    /* RED */
+    .status-light.red {
+      background: #ef4444;
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.9);
+    }
+  </style>
 </head>
 
 <body>
-<div class="header">
-    <div class="tab" id="dashboard" onclick="showTab('dashboard', this)">Dashboard</div>
-    <div class="tab active" id="employee" onclick="showTab('employee', this)">Employee</div>
-    <div class="tab" id="history" onclick="showTab('history', this)">History</div>
-</div>
+  <div class="header">
+    <div class="tab" id="dashboard" onclick="showTab('dashboard', this)">
+      Dashboard
+    </div>
+    <div class="tab active" id="employee" onclick="showTab('employee', this)">
+      Employee
+    </div>
+    <div class="tab" id="history" onclick="showTab('history', this)">
+      History
+    </div>
+    <div class="machine-status">
+      <span class="status-light red" id="machineLight"></span>
+      <span id="machineText">VM Offline</span>
+    </div>
+  </div>
 
-<div class="alert" id="alertBox"></div>
-<div class="container">
+  <div class="alert" id="alertBox"></div>
+  <div class="container">
     <div class="toolbar">
-        <div class="searchfield">
-            <input type="text" name="search" class="search-input" placeholder="Type Employee Name or Card ID ..."/>
-            <button class="btn search-btn">Search</button>
-        </div>
-        <button onclick="openModal()" class="btn add-btn">+Add Employee</button>
+      <div class="searchfield">
+        <input type="text" name="search" id="searchname" class="search-input" placeholder="Type Name or CardID ..." />
+        <button class="btn search-btn" onclick="searchname()">Search</button>
+      </div>
+      <button onclick="openModal()" class="btn add-btn">+Add</button>
     </div>
     <div class="table-wrapper">
-        <table>
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>ID</th>
-                    <th>Card ID</th>
-                    <th>Limit</th>
-                    <th>Items</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody id="empTable"></tbody>
-        </table>
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>ID</th>
+            <th>Card ID</th>
+            <th>Limit</th>
+            <th>Items</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="empTable"></tbody>
+      </table>
     </div>
     <!-- Modal Overlay -->
-<div id="employeeModal" class="modal">
-    <div class="modal-content">
+    <div id="employeeModal" class="modal">
+      <div class="modal-content">
         <div class="modal-header">
-            <h3>Employee Details</h3>
-            <span class="close" onclick="closeModal()">&times;</span>
+          <h3>Employee Details</h3>
+          <span class="close" onclick="closeModal()">&times;</span>
         </div>
 
         <div class="modal-body">
-            <p id="dataalert" style="display: none; color: red;"></p>
-            <label>Name</label>
-            <input type="text" id="name">
+          <p id="dataalert" style="display: none; color: red"></p>
+          <label>Name</label>
+          <input type="text" id="name" />
 
-            <label>ID</label>
-            <input type="text" id="empId">
+          <label>ID</label>
+          <input type="text" id="empId" />
 
-            <label>Card ID</label>
-            <input type="text" id="cardId">
+          <label>Card ID</label>
+          <input type="text" id="cardId" />
 
-            <label>Item Limit</label>
-            <input type="number" max="5" id="itemLimit">
+          <label>Item Limit</label>
+          <input type="number" max="5" id="itemLimit" />
 
-            <!-- <label>Left Item</label>
+          <!-- <label>Left Item</label>
             <input type="number" id="leftItem"> -->
 
-            <label>Status</label>
-            <select id="status">
-                <option value="1">Active</option>
-                <option value="2">Pending</option>
-                <option value="0">Denied</option>
-            </select>
+          <label>Status</label>
+          <select id="status">
+            <option value="1">Active</option>
+            <option value="2">Pending</option>
+            <option value="0">Denied</option>
+          </select>
         </div>
 
         <div class="modal-footer">
-            <button onclick="closeModal()" class="cancel">Cancel</button>
-            <button onclick="saveEmployee()" class="btn add-btn">Save</button>
+          <button onclick="closeModal()" class="cancel">Cancel</button>
+          <button onclick="saveEmployee()" class="btn add-btn">Save</button>
         </div>
+      </div>
     </div>
-</div>
-</div>
+    <!-- Modal -->
+    <div id="deleteModal" class="modal">
+      <span style="display: none" id="deleteCardID"></span>
+      <div class="modal-content" style="padding: 10px">
+        <h2 style="text-align: center">Delete Employee</h2>
+        <p style="text-align: center">
+          Are you sure you want to delete this employee?
+        </p>
 
-<script>
-function showTab(tabId, element) {
-    if(tabId=='dashboard')
-        window.location.href='/dashboard'
-    else if(tabId=='history')
-        window.location.href='/history'
-}
-function openModal() {
-    document.getElementById("employeeModal").style.display = "block";
-}
+        <div class="modal-actions" style="justify-content: space-around !important">
+          <button class="cancel-btn" onclick="closeConfirmModal()">
+            Cancel
+          </button>
 
-function closeModal() {
-    document.getElementById("employeeModal").style.display = "none";
-}
-function showAlert(message, type) {
-    const alertBox = document.getElementById("alertBox");
+          <button class="confirm-btn" onclick="confirm()">Confirm</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-    alertBox.innerText = message;
-    alertBox.className = `alert ${type}`;
-    alertBox.style.display = "block";
+  <script>
+    let editEmployeeId = null;
+    function searchname() {
+      let name = document.getElementById("searchname").value;
+      if (name != "") {
+        $.ajax({
+          type: "POST",
+          url: "/serachemployee",
+          data: JSON.stringify({ name }),
+          contentType: "application/json",
+        }).done(function (data) {
+          if (data.success) {
+            console.log("Received Data:", data.users);
+            renderTable(data.users);
+          } else {
+            showAlert(data.message);
+          }
+        });
+      }
+    }
+    function showTab(tabId, element) {
+      if (tabId == "dashboard") window.location.href = "/dashboard";
+      else if (tabId == "history") window.location.href = "/history";
+    }
+    function openModal() {
+      editEmployeeId = null;
+      document.getElementById("employeeModal").style.display = "block";
+      document.getElementById("name").value = "";
+      document.getElementById("empId").value = "";
+      document.getElementById("cardId").value = "";
+      document.getElementById("itemLimit").value = "";
+      document.getElementById("status").value = "1";
+    }
 
-    // Hide after 2 seconds
-    setTimeout(() => {
-    alertBox.style.display = "none";
-    }, 2000);
-}
-function saveEmployee() {
-    const data = {
+    function closeModal() {
+      document.getElementById("employeeModal").style.display = "none";
+    }
+    function showAlert(message) {
+      const alertBox = document.getElementById("alertBox");
+
+      alertBox.innerText = message;
+      alertBox.className = `alert`;
+      alertBox.style.display = "block";
+
+      // Hide after 2 seconds
+      setTimeout(() => {
+        alertBox.style.display = "none";
+      }, 2000);
+    }
+    function saveEmployee() {
+      const data = {
+        id: editEmployeeId,
         name: document.getElementById("name").value,
-        ID: document.getElementById("empId").value,
+        empID: document.getElementById("empId").value,
         cardID: document.getElementById("cardId").value,
         itemLimit: document.getElementById("itemLimit").value,
-        leftItem: 5,
-        status: document.getElementById("status").value
-    };
-    if(data.name=='' ||data.ID=='' ||data.cardID==''){
+        leftItem: document.getElementById("itemLimit").value,
+        status: document.getElementById("status").value,
+      };
+      if (data.name == "" || data.empID == "" || data.cardID == "") {
         document.getElementById("dataalert").style.display = "block";
-        document.getElementById("dataalert").innerText = "Please Fill Fields!";
-    }
-    else{
-        if(data.itemLimit>6) {
-            document.getElementById("dataalert").style.display = "block";
-            document.getElementById("dataalert").innerText = "Item Limit must be less than 5";
+        document.getElementById("dataalert").innerText =
+          "Please Fill Fields!";
+      } else {
+        document.getElementById("dataalert").style.display = "none";
+        if (editEmployeeId == null) {
+          //add mode
+          $.ajax({
+            type: "POST",
+            url: "/addemployee",
+            data: JSON.stringify(data),
+            contentType: "application/json",
+          }).done(function (data) {
+            if (data.success) {
+              console.log("Received Data:", data.users);
+              renderTable(data.users);
+            } else {
+              showAlert(data.message);
+            }
+          });
+        } else {
+          //update mode
+          $.ajax({
+            type: "POST",
+            url: "/updateemployee",
+            data: JSON.stringify(data),
+            contentType: "application/json",
+          }).done(function (data) {
+            if (data.success) {
+              console.log("Received Data:", data.users);
+              renderTable(data.users);
+            } else {
+              showAlert(data.message);
+            }
+          });
         }
-        else{
-            document.getElementById("dataalert").style.display = "none";
-            $.ajax({
-                type: "POST",
-                url: "/addemployee",
-                data: JSON.stringify(data),
-                contentType: "application/json"
-            }).done(function(data) {
-                if(data.success){
-                    showAlert(data.message, "success");
-                    console.log("Received Data:", data.user);
-                    renderTable(data.user);
-
-                }else{
-                    showAlert(data.message, "error");
-                }
-            });
-            console.log("Employee Data:", data);
-            closeModal();
-        }
-
-    } 
-}
-// const employees = [
-//     { id: "E101", name: "John Doe", limit: 5, items: 1, status: "Active" },
-//     { id: "E102", name: "Jane Smith", limit: 5, items: 0, status: "Pending" },
-//     { id: "E103", name: "Michael Lee", limit: 5, items: 3, status: "Active" },
-//     { id: "E104", name: "Sarah Kim", limit: 5, items: 5, status: "Denied" }
-// ];
-
-const selectedDates = new Set();
-
-function addDate() {
-    const input = document.getElementById("dateInput");
-    const val = input.value;
-    if (!val) return;
-
-    if (selectedDates.has(val)) {
-        selectedDates.delete(val);
-    } else {
-        selectedDates.add(val);
+        editEmployeeId = null;
+        console.log("Employee Data:", data);
+        closeModal();
+        // }
+      }
     }
 
-    renderDates();
-    input.value = "";
-}
+    function renderTable(employees) {
+      let html = "";
+      const statusClass = ["Denied", "Active", "Pending"];
 
-function removeDate(date) {
-    selectedDates.delete(date);
-    renderDates();
-}
-
-function renderDates() {
-    const list = Array.from(selectedDates).sort();
-
-    document.getElementById("selectedDays").innerText = list.length ? list.join(", ") : "None";
-
-    const chips = document.getElementById("chips");
-    chips.innerHTML = "";
-
-    list.forEach(d => {
-        const el = document.createElement("div");
-        el.className = "chip";
-        el.innerText = d + " ✕";
-        el.onclick = () => removeDate(d);
-        chips.appendChild(el);
-    });
-}
-
-function renderTable(employees) {
-    let html = "";
-
-    employees.forEach(emp => {
+      employees.forEach((emp) => {
         html += `
         <tr>
-            <td>${emp[0]}</td>
             <td>${emp[1]}</td>
             <td>${emp[2]}</td>
+            <td>${emp[3]}</td>
+            <td>${emp[4]}</td>
+            <td>${emp[5]} left</td>
             <td>
-                <select>
-                    <option ${emp[3]==1?'selected':''}>1</option>
-                    <option ${emp[3]==2?'selected':''}>2</option>
-                    <option ${emp[3]==3?'selected':''}>3</option>
-                    <option ${emp[3]==4?'selected':''}>4</option>
-                    <option ${emp[3]==5?'selected':''}>5</option>
-                </select>
-            </td>
-            <td>${emp[4]} left</td>
-            <td>
-                <select>
-                    <option ${emp[5]==1?'selected':''} class="status active"}>Active</option>
-                    <option ${emp[5]==2?'selected':''} class="status pending">Pending</option>
-                    <option ${emp[5]==0?'selected':''} class="status denied"}>Denied</option>
-                </select>
+                <span class="status ${statusClass[emp[6]].toLocaleLowerCase()}">${statusClass[emp[6]]}</span>               
             </td>
             <td>
-                <button class="view">Update</button>
-                <button class="delete">Delete</button>
+                <button class="view" onclick='updateConfirm(${JSON.stringify(emp)})'>Update</button>
+                <button class="delete" onclick="deleteConfirm(${emp[3]})" >Delete</button>
             </td>
         </tr>
         `;
+      });
+
+      document.getElementById("empTable").innerHTML = html;
+    }
+    function updateConfirm(e) {
+      openModal();
+      document.getElementById("name").value = e[1];
+      document.getElementById("empId").value = e[2];
+      document.getElementById("cardId").value = e[3];
+      document.getElementById("itemLimit").value = e[4];
+      document.getElementById("status").value = e[6];
+      editEmployeeId = e[0];
+    }
+    function deleteConfirm(e) {
+      document.getElementById("deleteModal").style.display = "flex";
+      document.getElementById("deleteCardID").innerText = e;
+    }
+    function confirm() {
+      const cardID = document.getElementById("deleteCardID").innerText;
+      console.log("cardID:", cardID);
+      $.ajax({
+        type: "POST",
+        url: "/deleteemployee",
+        contentType: "application/json",
+        data: JSON.stringify({ cardID }),
+      }).done(function (data) {
+        document.getElementById("deleteModal").style.display = "none";
+        if (data.success) {
+          renderTable(data.users);
+        } else showAlert(data.message);
+        console.log("Received Data:", data);
+      });
+    }
+    function closeConfirmModal() {
+      document.getElementById("deleteModal").style.display = "none";
+    }
+
+    $.ajax({
+      type: "POST",
+      url: "/getemployee",
+      contentType: "application/json",
+    }).done(function (data) {
+      console.log("Received Data:", data);
+      renderTable(data);
+    });
+    const socket = io();
+
+    // Listen for connection
+    socket.on("connect", () => {
+      console.log("Connected to server");
     });
 
-    document.getElementById("empTable").innerHTML = html;
-    document.getElementById("totalEmp").innerText = employees.length;
-    document.getElementById("activeEmp").innerText = employees.filter(e=>e.status=="Active").length;
-    // document.getElementById("machineStatus").innerText = employees.filter(e=>e.status=="machinestatus").length;
-}
-// Convert the Flask variable to a JS object on load
-$.ajax({
-    type: "POST",
-    url: "/getemployee",
-    contentType: "application/json"
-}).done(function(data) {
-    console.log("Received Data:", data);
-    renderTable(data);
-});
+    // Listen for custom server events
+    socket.on("response", (data) => {
+      const light = document.getElementById("machineLight");
+      const text = document.getElementById("machineText");
 
-</script>
+      if (data.data == 1) {
+        light.classList.remove("red");
+        light.classList.add("green");
+        text.innerText = "VM Online";
+      } else if (data.data == 0 || data.data ==2) {
+        light.classList.remove("green");
+        light.classList.add("red");  
+        if(data.data==2){       
+          text.innerText = "Restart Machine";
+        }
+        else
+          text.innerText = "VM Offline";   
 
+      } else {
+        document.getElementById("machineStatus").innerText =
+          data.data == "on" ? "ON" : "OFF";
+        document.getElementById("machineStatus").style.color =
+          data.data == "on" ? "#4CAF50" : "#000000";
+        document.getElementById("toggleSwitch").checked = data.data == "on"
+          ? true
+          : false;
+      }
+    });
+
+  </script>
 </body>
+
 </html>
