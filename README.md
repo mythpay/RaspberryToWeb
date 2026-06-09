@@ -143,5 +143,6 @@ pip install -r requirements.txt
 # Run
 
 ```bash
+python dbcreate.py (Create DataBase)
 python app.py (you can see browser website on localhost:5000)
 ```
